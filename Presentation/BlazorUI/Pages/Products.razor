@@ -1,0 +1,146 @@
+﻿@page "/products"
+@inject HttpClient Http
+
+<h1>Products</h1>
+
+<a href="/addeditproduct/0" class="btn btn-primary">Add New Product</a>
+<hr />
+<div class="row">
+    <div class="col-sm-12">
+        <div class="form-row">
+            <div class="col-md-4 mb-3">
+                <label for="validationCustom01">Name  </label>
+                <input @bind="name" class="form-control" maxlength="350" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="validationCustom01">Supplier </label>
+                <select class="form-control" @bind="supplierId">
+                    <option value="0">-- All Suppliers --</option>
+                    @if (suppliers != null)
+                    {
+                        foreach (var item in suppliers)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="validationCustom01">Status </label>
+                <select class="form-control" @bind="statusId">
+                    <option value="0">-- All Status --</option>
+                    <option value="1">Publish</option>
+                    <option value="2">Un Publish</option>
+                </select>
+            </div>
+
+            <div class="form-group text-right">
+                <button class="btn btn-primary" @onclick="_ => LoadProducts()">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (products == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Unit Price</th>
+                <th>Supplier Name</th>
+                <th>Status</th>
+                <th>Options</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in products)
+            {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.UnitPrice</td>
+                <td>@item.SupplierName</td>
+                @if (item.IsPublish)
+                {
+                    <td>
+                        <span class="badge bg-success">Published</span>
+                    </td>
+                }
+                else
+                {
+                    <td><span class="badge bg-danger">Not Publish</span></td>
+                }
+                <td>
+                    <div class="list-icons">
+                        <a href="/addeditproduct/@item.Id" class="btn btn-primary">Edit</a>&nbsp;
+                        @if (item.IsPublish)
+                        {
+                            <a @onclick="_ => ChangeStatus(item.Id,false)" class="btn btn-danger"> Un Publish</a>
+                        }
+                        else
+                        {
+                            <a @onclick="_ => ChangeStatus(item.Id,true)" class="btn btn-primary">Publish</a>
+                        }
+                        &nbsp;<a @onclick="_ => DeleteItem(item.Id)" class="btn btn-danger">Delete</a>
+                    </div>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+
+    <Pagination TotaPagesQuantity="totalRecords" CurrentPage="currentPageIndex" PageSize="10"
+                SelectedPage="SelectedPage"></Pagination>
+}
+
+@code {
+    IEnumerable<ProductViewModel> products { get; set; }
+    IEnumerable<SupplierViewModel> suppliers { get; set; }
+    private int totalRecords;
+    private int statusId;
+    private int supplierId;
+    private string name { get; set; }
+    private int currentPageIndex = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuppliers();
+        await LoadProducts();
+    }
+    async Task LoadProducts(int pageIndex = 1, int pageSize = 10)
+    {
+        currentPageIndex = pageIndex;
+        var item = await Http.GetFromJsonAsync<ResponseListModel<ProductViewModel>>("product/List?search="+ name + "&statusId="+ statusId + "&pageIndex=" + (pageIndex - 1) + "&pageSize=" + pageSize);
+
+        products = item.Data;
+        totalRecords = item.TotalRecords;
+    }
+    async Task LoadSuppliers(int pageSize = 10)
+    {
+        var item = await Http.GetFromJsonAsync<ResponseListModel<SupplierViewModel>>("Supplier/List?pageSize=" + int.MaxValue);
+        suppliers = item.Data;
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        currentPageIndex = page;
+        await LoadProducts(currentPageIndex);
+    }
+    private async Task ChangeStatus(int id,bool isPublish)
+    {
+        var response = await Http.PostAsJsonAsync("Product/ChangeStatus", new StatusModel() { Id = id , IsPublish = isPublish});
+        var resualt = await response.Content.ReadFromJsonAsync<ResponseModel>();
+        if (resualt.IsSuccess)
+            await LoadProducts();
+    }
+    private async Task DeleteItem(int id)
+    {
+        var response = await Http.PostAsJsonAsync("product/Delete", new BaseModel() { Id = id });
+        var resualt = await response.Content.ReadFromJsonAsync<ResponseModel>();
+        if (resualt.IsSuccess)
+            await LoadProducts();
+    }
+}

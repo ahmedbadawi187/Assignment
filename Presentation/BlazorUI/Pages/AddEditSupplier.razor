@@ -1,0 +1,91 @@
+﻿@page "/addeditsupplier/{id:int}"
+@inject HttpClient Http
+
+<h1>Add / Edit</h1>
+
+@if (supplierModel == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+<EditForm Model="@supplierModel" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+    <div class="col-sm-12">
+        <ValidationSummary />
+    </div>
+    <div class="col-sm-12">
+        <div>@ErrorMessage</div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-row">
+
+                <div class="col-md-6 mb-3">
+                    <label for="validationCustom01">Name  <span class="text-danger">*</span></label>
+                    <input @bind="supplierModel.Name" class="form-control" />
+                    <ValidationMessage For="() => supplierModel.Name"></ValidationMessage>
+                </div>
+                <div class="col-md-6 mb-3" style="padding-top: 40px;">
+                    <div class="form-check form-check-inline">
+                        <input @bind="supplierModel.IsPublish" class="form-check-input-styled" />
+                        &nbsp; Publish
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <button class="btn btn-primary" type="submit">Submit</button>
+                    <a onclick="history.back()" class="btn btn-default">Back<i class="icon-back-left"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (formIsValid)
+    {
+        <div class="spinner-border"></div>
+    }
+</EditForm>
+
+    
+}
+
+@code {
+
+    [Parameter]
+    public int id { get; set; }
+
+    public bool formIsValid { get; set; }
+
+    public string ErrorMessage { get; set; }
+
+    private SupplierModel supplierModel { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        if (id > 0)
+            await LoadSupplierItem();
+        else
+            supplierModel = new SupplierModel();
+    }
+    async Task LoadSupplierItem()
+    {
+        supplierModel = await Http.GetFromJsonAsync<SupplierModel>("Supplier/GetById?id=" + id);
+    }
+    private async Task HandleSubmit()
+    {
+        formIsValid = true;
+
+        if (supplierModel != null)
+        {
+            var response = await Http.PostAsJsonAsync("Supplier/AddEdit", supplierModel);
+            var resualt = await response.Content.ReadFromJsonAsync<ResponseModel>();
+            if (resualt.IsSuccess)
+            {
+                NavigationManager.NavigateTo($"suppliers");
+            }
+            else
+            {
+                ErrorMessage = resualt.Message;
+            }
+            formIsValid = false;
+        }
+    }
+}

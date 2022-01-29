@@ -1,0 +1,151 @@
+﻿@page "/addeditproduct/{id:int}"
+@inject HttpClient Http
+
+<h1>Add / Edit</h1>
+
+@if (productModel == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+<EditForm Model="@productModel" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+    <div class="col-sm-12">
+        <div>@ErrorMessage</div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-row">
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Name  <span class="text-danger">*</span></label>
+                    <input @bind="productModel.Name" class="form-control" />
+                    <ValidationMessage For="() => productModel.Name"></ValidationMessage>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Supplier </label>
+                    <select class="form-control" @bind="productModel.SupplierId">
+                        <option value="0">-- Select Suppliers --</option>
+                        @if (suppliers != null)
+                        {
+                            foreach (var item in suppliers)
+                            {
+                                <option value="@item.Id">@item.Name</option>
+                            }
+                        }
+                    </select>
+                    <ValidationMessage For="() => productModel.SupplierId"></ValidationMessage>
+
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Quantity Per Unit </label>
+                    <select class="form-control" @bind="productModel.QuantityPerUnitId">
+                        <option value="0">-- Select Unit --</option>
+                        @if (Units != null)
+                        {
+                            foreach (var item in Units)
+                            {
+                                <option value="@item.Id">@item.Name</option>
+                            }
+                        }
+                    </select>
+                    <ValidationMessage For="() => productModel.QuantityPerUnitId"></ValidationMessage>
+
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Reorder Level  <span class="text-danger">*</span></label>
+                    <input @bind="productModel.ReorderLevel" type="number" class="form-control" />
+                    <ValidationMessage For="() => productModel.ReorderLevel"></ValidationMessage>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Unit Price  <span class="text-danger">*</span></label>
+                    <input @bind="productModel.UnitPrice" type="number" class="form-control" />
+                    <ValidationMessage For="() => productModel.UnitPrice"></ValidationMessage>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Units In Stock  <span class="text-danger">*</span></label>
+                    <input @bind="productModel.UnitsInStock" type="number" class="form-control" />
+                    <ValidationMessage For="() => productModel.UnitsInStock"></ValidationMessage>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="validationCustom01">Units On Order  <span class="text-danger">*</span></label>
+                    <input @bind="productModel.UnitsOnOrder" type="number" class="form-control" />
+                    <ValidationMessage For="() => productModel.UnitsOnOrder"></ValidationMessage>
+                </div>
+                <div class="col-md-6 mb-3" style="padding-top: 40px;">
+                    <div class="form-check form-check-inline">
+                        <InputCheckbox @bind-Value="productModel.IsPublish" class="form-check-input-styled" />
+                        &nbsp; Publish
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <button class="btn btn-primary" type="submit">Submit</button>
+                    <a onclick="history.back()" class="btn btn-default">Back<i class="icon-back-left"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (formIsValid)
+    {
+        <div class="spinner-border"></div>
+    }
+</EditForm>
+
+    
+}
+
+@code {
+
+    [Parameter]
+    public int id { get; set; }
+
+    public bool formIsValid { get; set; }
+
+    public string ErrorMessage { get; set; }
+
+    IEnumerable<SupplierViewModel> suppliers { get; set; }
+    IEnumerable<BaseViewModel> Units { get; set; }
+    private ProductModel productModel { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuppliers();
+        await LoadUnits();
+
+        if (id > 0)
+            await LoadProductItem();
+        else
+            productModel = new ProductModel();
+    }
+    async Task LoadProductItem()
+    {
+        productModel = await Http.GetFromJsonAsync<ProductModel>("product/GetById?id=" + id);
+    }
+    async Task LoadSuppliers(int pageSize = 10)
+    {
+        var item = await Http.GetFromJsonAsync<ResponseListModel<SupplierViewModel>>("Supplier/List?pageSize=" + int.MaxValue);
+        suppliers = item.Data;
+    }
+    async Task LoadUnits()
+    {
+        var item = await Http.GetFromJsonAsync<ResponseListModel<BaseViewModel>>("Common/GetAllUnits");
+        Units = item.Data;
+    }
+    private async Task HandleSubmit()
+    {
+        formIsValid = true;
+        if (productModel != null)
+        {
+            var response = await Http.PostAsJsonAsync("product/AddEdit", productModel);
+            var resualt = await response.Content.ReadFromJsonAsync<ResponseModel>();
+            if (resualt.IsSuccess)
+            {
+                NavigationManager.NavigateTo($"products");
+            }
+            else
+            {
+                ErrorMessage = resualt.Message;
+            }
+            formIsValid = false;
+        }
+    }
+}

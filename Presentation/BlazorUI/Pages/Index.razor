@@ -1,0 +1,151 @@
+﻿@page "/"
+@inject HttpClient Http
+
+
+<h1>Statistics</h1>
+<br />
+@if (productsReOrder == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <h3>Products Stock need to re-order</h3>
+    <br />
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Reorder Level</th>
+                <th>Units In Stock</th>
+                <th>Supplier Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in productsReOrder)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.ReorderLevel</td>
+                    <td>@item.UnitsInStock</td>
+                    <td>@item.SupplierName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <Pagination TotaPagesQuantity="totalRecordsProductsReOrder" CurrentPage="currentPageIndexProductsReOrder" PageSize="10"
+                SelectedPage="SelectedPageReOrder"></Pagination>
+}
+
+
+@if (largestSupplierInSore == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <h3> Largest Supplier In Store</h3>
+    <br />
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Supplier</th>
+                <th>Total Products</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@largestSupplierInSore.Name</td>
+                <td>@largestSupplierInSore.TotalProducts</td>
+            </tr>
+        </tbody>
+    </table>
+}
+@if (productsMinimumOrders == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+
+    <br />
+    <h3>Products with minimum orders </h3>
+    <br />
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Units On Order</th>
+                <th>Supplier Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in productsMinimumOrders)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.UnitsOnOrder</td>
+                    <td>@item.SupplierName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <Pagination TotaPagesQuantity="totalRecordsMinimumOrders" CurrentPage="currentPageIndexMinimumOrders" PageSize="10"
+                SelectedPage="SelectedPageMinimumOrders"></Pagination>
+}
+
+@code{
+    IEnumerable<ProductViewModel> productsReOrder { get; set; }
+    SupplierViewModel largestSupplierInSore { get; set; }
+    IEnumerable<ProductViewModel> productsMinimumOrders { get; set; }
+
+    private int totalRecordsProductsReOrder;
+    private int currentPageIndexProductsReOrder = 1;
+
+    private int totalRecordsMinimumOrders;
+    private int currentPageIndexMinimumOrders = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsReOrder();
+
+        await LoadLargestSupplierInSore();
+
+        await LoadProductsMinimumOrders();
+    }
+    private async Task SelectedPageReOrder(int page)
+    {
+        currentPageIndexProductsReOrder = page;
+        await LoadProductsReOrder(currentPageIndexProductsReOrder);
+    }
+    async Task LoadProductsReOrder(int pageIndex = 1, int pageSize = 10)
+    {
+        currentPageIndexProductsReOrder = pageIndex;
+        var item = await Http.GetFromJsonAsync<ResponseListModel<ProductViewModel>>("product/LoadProductsReOrder?pageIndex=" + (pageIndex - 1) + "&pageSize=" + pageSize);
+
+        productsReOrder = item.Data;
+        totalRecordsProductsReOrder = item.TotalRecords;
+    }
+
+    async Task LoadLargestSupplierInSore()
+    {
+        largestSupplierInSore = await Http.GetFromJsonAsync<SupplierViewModel>("supplier/GetLargestSupplierInSore");
+    }
+
+    private async Task SelectedPageMinimumOrders(int page)
+    {
+        currentPageIndexProductsReOrder = page;
+        await LoadProductsMinimumOrders(currentPageIndexProductsReOrder);
+    }
+    async Task LoadProductsMinimumOrders(int pageIndex = 1, int pageSize = 10)
+    {
+        currentPageIndexMinimumOrders = pageIndex;
+        var item = await Http.GetFromJsonAsync<ResponseListModel<ProductViewModel>>("product/LoadProductsMinimumOrders?pageIndex=" + (pageIndex - 1) + "&pageSize=" + pageSize);
+
+        productsMinimumOrders = item.Data;
+        totalRecordsMinimumOrders = item.TotalRecords;
+    }
+}
