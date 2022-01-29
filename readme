@@ -1,0 +1,4 @@
+when you need to run frontend project in localhost , flow steps
+1- run api first 
+2- take localhost url of api copy and change BaseUrl inside wwwroote/appsetting.json 
+3-run blazor project on iis
